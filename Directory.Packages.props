@@ -19,8 +19,12 @@
   </ItemGroup>
 
   <ItemGroup Label="PostgreSQL">
-    <!-- 只用 NpgsqlConnectionStringBuilder 做连接串组装/转义，不引 EF provider。 -->
-    <PackageVersion Include="Npgsql" Version="10.0.2" />
+    <!--
+      只用 NpgsqlConnectionStringBuilder 做连接串组装/转义，不引 EF provider。
+      版本不能低于 10.0.3：各产品仓的 Npgsql.EntityFrameworkCore.PostgreSQL 10.0.2
+      依赖 Npgsql (>= 10.0.3)，钉低了会在开启传递性中央钉版的仓（如 Tavern）触发 NU1109 降级错误。
+    -->
+    <PackageVersion Include="Npgsql" Version="10.0.3" />
   </ItemGroup>
 
   <ItemGroup Label="Cache (Redis + FusionCache)">
