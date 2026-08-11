@@ -1,28 +1,21 @@
-﻿using System.Net;
+using System.Net;
 using Microsoft.Extensions.Configuration;
 using StackExchange.Redis;
 
 namespace Platform.Common.Hosting;
 
 /// <summary>
-/// 解析 Redis 连接串：要求配置为 <c>redis://</c> 或 <c>rediss://</c> URI，再转为 StackExchange.Redis 格式连接。
+/// Redis 连接的建立与诊断。解析规则在 <see cref="RedisConnectionBuilder"/>，这里只负责连上去。
 /// </summary>
 public static class RedisConnectionResolver
 {
-    public static string? Resolve(IConfiguration configuration)
-    {
-        var explicitConn = configuration.GetConnectionString("Redis");
-        if (!string.IsNullOrWhiteSpace(explicitConn))
-            return ToStackExchangeFormat(explicitConn.Trim());
+    /// <inheritdoc cref="ConfigurationConnectionExtensions.GetRedisConnectionString"/>
+    public static string? Resolve(IConfiguration configuration) =>
+        configuration.GetRedisConnectionString();
 
-        return ToStackExchangeFormat(configuration.GetConnectionString("redis"));
-    }
-
+    /// <inheritdoc cref="ConfigurationConnectionExtensions.GetRequiredRedisConnectionString"/>
     public static string GetRequired(IConfiguration configuration) =>
-        Resolve(configuration)
-        ?? throw new InvalidOperationException(
-            "Redis connection string is required. Configure ConnectionStrings:Redis as a redis:// URI, " +
-            "e.g. Redis: \"redis://redis:6379\".");
+        configuration.GetRequiredRedisConnectionString();
 
     public static void ValidateConnectionString(string connectionString)
     {
@@ -35,80 +28,16 @@ public static class RedisConnectionResolver
             }))
         {
             throw new InvalidOperationException(
-                $"Invalid Redis connection string (no host): '{RedactForLog(connectionString)}'. " +
-                "Use a redis:// URI, e.g. Redis: \"redis://redis:6379\".");
+                $"Redis 连接串没有主机：'{RedactForLog(connectionString)}'。"
+                + $" 请配置 {RedisConnectionOptions.SectionName}:Host。");
         }
-    }
-
-    /// <summary>
-    /// 将 <c>redis://</c> / <c>rediss://</c> URI 转为 StackExchange.Redis 连接串；非 URI 输入直接报错。
-    /// </summary>
-    internal static string? ToStackExchangeFormat(string? raw)
-    {
-        if (string.IsNullOrWhiteSpace(raw))
-            return null;
-
-        raw = raw.Trim();
-
-        if (!Uri.TryCreate(raw, UriKind.Absolute, out var uri)
-            || (!uri.Scheme.Equals("redis", StringComparison.OrdinalIgnoreCase)
-                && !uri.Scheme.Equals("rediss", StringComparison.OrdinalIgnoreCase)))
-        {
-            throw new InvalidOperationException(
-                $"Redis connection string must be a redis:// or rediss:// URI, e.g. \"redis://redis:6379\". Got: '{RedactForLog(raw)}'.");
-        }
-
-        var host = uri.Host;
-        var port = uri.Port > 0 ? uri.Port : 6379;
-        if (string.IsNullOrWhiteSpace(host))
-        {
-            throw new InvalidOperationException(
-                $"Redis URI '{raw}' has no host. Use e.g. \"redis://redis:6379\".");
-        }
-
-        var password = uri.UserInfo;
-        if (password.StartsWith(':'))
-            password = password[1..];
-        password = Uri.UnescapeDataString(password);
-
-        var useTls = uri.Scheme.Equals("rediss", StringComparison.OrdinalIgnoreCase);
-        var parts = new List<string> { $"{host}:{port}" };
-        if (!string.IsNullOrEmpty(password))
-            parts.Add($"password={password}");
-        parts.Add(useTls ? "ssl=true" : "ssl=false");
-        parts.Add("abortConnect=false");
-        return string.Join(',', parts);
     }
 
     public static string FormatEndPoints(IEnumerable<EndPoint> endPoints) =>
-        string.Join(", ", endPoints.Select(FormatEndPoint));
+        RedisEndPointFormatter.Format(endPoints);
 
-    public static string FormatEndPoint(EndPoint endPoint)
-    {
-        if (endPoint is DnsEndPoint dns)
-        {
-            return $"{dns.Host}:{dns.Port}";
-        }
-
-        if (endPoint is IPEndPoint ip)
-        {
-            return ip.ToString();
-        }
-
-        var text = endPoint.ToString();
-        if (string.IsNullOrWhiteSpace(text))
-        {
-            return "unknown";
-        }
-
-        var slash = text.LastIndexOf('/');
-        if (slash >= 0 && slash < text.Length - 1)
-        {
-            return text[(slash + 1)..];
-        }
-
-        return text;
-    }
+    public static string FormatEndPoint(EndPoint endPoint) =>
+        RedisEndPointFormatter.Format(endPoint);
 
     /// <summary>
     /// 连接 Redis。<paramref name="requireConnected"/> 为 true 时连不上直接抛异常（生产服务硬依赖）。
@@ -116,31 +45,32 @@ public static class RedisConnectionResolver
     public static IConnectionMultiplexer ConnectMultiplexer(string connectionString, bool requireConnected = false)
     {
         ValidateConnectionString(connectionString);
-        var opts = ConfigurationOptions.Parse(connectionString);
-        opts.AbortOnConnectFail = requireConnected;
-        opts.ConnectRetry = requireConnected ? 3 : 5;
-        opts.ConnectTimeout = 10_000;
-        opts.SyncTimeout = 10_000;
-        opts.AsyncTimeout = 10_000;
-        var mux = ConnectionMultiplexer.Connect(opts);
+        var opts = RedisConnectionBuilder.ApplyPlatformDefaults(ConfigurationOptions.Parse(connectionString));
+        return ConnectMultiplexer(opts, requireConnected);
+    }
+
+    /// <inheritdoc cref="ConnectMultiplexer(string, bool)"/>
+    public static IConnectionMultiplexer ConnectMultiplexer(ConfigurationOptions options, bool requireConnected = false)
+    {
+        options.AbortOnConnectFail = requireConnected;
+        var mux = ConnectionMultiplexer.Connect(options);
         if (requireConnected)
-        {
             mux.GetDatabase().Ping();
-        }
 
         return mux;
     }
 
     public static IConnectionMultiplexer ConnectMultiplexer(IConfiguration configuration, bool requireConnected = false) =>
-        ConnectMultiplexer(GetRequired(configuration), requireConnected);
+        ConnectMultiplexer(
+            configuration.GetRedisConfigurationOptions()
+            ?? throw new InvalidOperationException(
+                $"缺少 Redis 连接配置。请在本服务的 yaml 里配置 {RedisConnectionOptions.SectionName}。"),
+            requireConnected);
 
-    public static string DescribeEndpoints(string connectionString)
-    {
-        var opts = ConfigurationOptions.Parse(connectionString);
-        return opts.EndPoints.Count == 0
-            ? "(none)"
-            : FormatEndPoints(opts.EndPoints);
-    }
+    public static string DescribeEndpoints(string connectionString) =>
+        ConfigurationOptions.Parse(connectionString) is { EndPoints.Count: > 0 } opts
+            ? FormatEndPoints(opts.EndPoints)
+            : "(none)";
 
     internal static string RedactForLog(string connectionString)
     {

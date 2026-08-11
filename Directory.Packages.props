@@ -8,9 +8,19 @@
     <PackageVersion Include="Consul" Version="1.8.0" />
   </ItemGroup>
 
+  <ItemGroup Label="Messaging (MassTransit v8, Apache-2.0)">
+    <!-- 与 Meeko.Platform 根 Directory.Packages.props 保持同版本，避免同一输出目录里出现两个 MassTransit。 -->
+    <PackageVersion Include="MassTransit.RabbitMQ" Version="8.5.10" />
+  </ItemGroup>
+
   <ItemGroup Label="MagicOnion (RPC)">
     <PackageVersion Include="MagicOnion.Client" Version="7.10.0" />
     <PackageVersion Include="Grpc.Net.Client" Version="2.80.0" />
+  </ItemGroup>
+
+  <ItemGroup Label="PostgreSQL">
+    <!-- 只用 NpgsqlConnectionStringBuilder 做连接串组装/转义，不引 EF provider。 -->
+    <PackageVersion Include="Npgsql" Version="10.0.2" />
   </ItemGroup>
 
   <ItemGroup Label="Cache (Redis + FusionCache)">

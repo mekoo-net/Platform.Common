@@ -14,6 +14,7 @@
   <ItemGroup>
     <InternalsVisibleTo Include="Meeko.Keystone.Tests" />
   </ItemGroup>
+
   <ItemGroup>
     <FrameworkReference Include="Microsoft.AspNetCore.App" />
   </ItemGroup>
@@ -37,7 +38,11 @@
 
     <PackageReference Include="MagicOnion.Client" />
 
+    <PackageReference Include="MassTransit.RabbitMQ" />
+
     <PackageReference Include="MessagePack" />
+
+    <PackageReference Include="Npgsql" />
 
     <PackageReference Include="StackExchange.Redis" />
     <PackageReference Include="Microsoft.Extensions.Caching.StackExchangeRedis" />
