@@ -89,6 +89,12 @@ public static class SerilogExtensions
         {
             lc.MinimumLevel.Override("System.Net.Http.HttpClient", LogEventLevel.Warning);
         }
+
+        if (section["ZiggyCreatures.Caching.Fusion"] is null)
+        {
+            // GetOrSet 命中也会打 Information（call/return + tag），高频路径会刷屏。
+            lc.MinimumLevel.Override("ZiggyCreatures.Caching.Fusion", LogEventLevel.Warning);
+        }
     }
 
     private static LogEventLevel? ParseLogLevel(string? value) =>
