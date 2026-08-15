@@ -23,6 +23,7 @@ public sealed class FusionCacheProfilesOptions
     public FusionCacheProfileOptions ApiKey { get; set; } = new()
     {
         DistributedDuration = TimeSpan.FromHours(1),
+        NegativeDuration = TimeSpan.FromSeconds(5),
     };
 
     /// <summary>账户限流配额：<c>meeko:gateway:ratelimit:{accountUid}</c>。</summary>

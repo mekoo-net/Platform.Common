@@ -19,4 +19,9 @@ public sealed class FusionCacheProfileOptions
 
     /// <summary>FailSafe 后台刷新节流间隔。</summary>
     public TimeSpan? FailSafeThrottleDuration { get; set; }
+
+    /// <summary>
+    /// 负缓存 TTL（未命中 / 无效结果）。未设置时调用方自行决定；ApiKey 等解析路径常用短 TTL 防穿透。
+    /// </summary>
+    public TimeSpan? NegativeDuration { get; set; }
 }
