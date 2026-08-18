@@ -1,4 +1,5 @@
-﻿using System.Text.Json;
+﻿using System.Text.Encodings.Web;
+using System.Text.Json;
 using System.Text.Json.Serialization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.DependencyInjection;
@@ -27,6 +28,8 @@ public static class PlatformJsonOptions
         o.PropertyNamingPolicy        = JsonNamingPolicy.CamelCase;
         o.DictionaryKeyPolicy         = JsonNamingPolicy.CamelCase;
         o.PropertyNameCaseInsensitive = true;
+        // 默认编码器把汉字 / emoji 收成 \uXXXX。控制台和 LLM 荷载都走 UTF-8 原文。
+        o.Encoder                     = JavaScriptEncoder.UnsafeRelaxedJsonEscaping;
 
         // 字符串枚举走 snake_case：billingType "per_token" / providerStatus "auto_disabled" 等
         // 需要 snake_case 才能与 console docs 的 union 判别字段一致。单词枚举（"active" /
