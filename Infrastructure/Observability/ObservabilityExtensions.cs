@@ -1,6 +1,7 @@
 ﻿using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
+using OpenTelemetry;
 using OpenTelemetry.Instrumentation.EntityFrameworkCore;
 using OpenTelemetry.Instrumentation.GrpcNetClient;
 using OpenTelemetry.Instrumentation.Hangfire;
@@ -67,6 +68,8 @@ public static class ObservabilityExtensions
             {
                 tracing.AddSource(src);
             }
+
+            tracing.AddProcessor(new MagicOnionSpanNameProcessor());
 
             if (!string.IsNullOrWhiteSpace(options.OtlpEndpoint))
             {
