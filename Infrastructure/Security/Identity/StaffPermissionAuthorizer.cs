@@ -50,7 +50,7 @@ internal sealed class FusionCacheStaffPermissionAuthorizer : IStaffPermissionAut
 
     public Task<bool> HasPermissionAsync(string permissionCode, CancellationToken ct = default)
         => HasPermissionAsync(
-            _currentUser.ActorType == ActorType.Staff ? StaffActor : null,
+            ActorName(_currentUser.ActorType),
             _currentUser.StaffRole,
             permissionCode,
             ct);
@@ -58,6 +58,8 @@ internal sealed class FusionCacheStaffPermissionAuthorizer : IStaffPermissionAut
     public async Task<bool> HasPermissionAsync(string? actor, string? staffRole, string permissionCode, CancellationToken ct = default)
     {
         if (string.IsNullOrWhiteSpace(permissionCode)) return false;
+        if (string.Equals(actor, "apikey", StringComparison.OrdinalIgnoreCase))
+            return _currentUser.Scopes.Contains(permissionCode, StringComparer.OrdinalIgnoreCase);
         if (!string.Equals(actor, StaffActor, StringComparison.OrdinalIgnoreCase)) return false;
         if (string.IsNullOrWhiteSpace(staffRole)) return false;
 
@@ -86,6 +88,13 @@ internal sealed class FusionCacheStaffPermissionAuthorizer : IStaffPermissionAut
             setupAction: opt => opt.ApplyProfile(_cacheOptions, _cacheOptions.Profiles.RbacStaff),
             token: ct);
     }
+
+    private static string? ActorName(ActorType type) => type switch
+    {
+        ActorType.Staff => StaffActor,
+        ActorType.ApiKey => "apikey",
+        _ => null,
+    };
 }
 
 public static class StaffPermissionAuthorizerExtensions

@@ -17,6 +17,8 @@ public interface ICurrentAuth
     string? TraceId { get; }
     IReadOnlyCollection<string> Roles { get; }
     string? StaffRole { get; }
+    /// <summary>平台 API Key 开通的权限码（Gateway <c>X-Scopes</c>）。</summary>
+    IReadOnlyCollection<string> Scopes { get; }
     string? TokenJti { get; }
     long? SessionId { get; }
     string? ClientIp { get; }

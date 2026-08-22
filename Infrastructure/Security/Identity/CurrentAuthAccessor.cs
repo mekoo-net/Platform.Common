@@ -48,6 +48,17 @@ public sealed class CurrentAuthAccessor : ICurrentAuth
     public string? StaffRole => Ctx?.Request.Headers[StaffRoleHeader].FirstOrDefault();
     public string? TokenJti  => Ctx?.Request.Headers[TokenJtiHeader].FirstOrDefault();
 
+    public IReadOnlyCollection<string> Scopes
+    {
+        get
+        {
+            var raw = Ctx?.Request.Headers[GatewayHeaders.Scopes].FirstOrDefault();
+            if (string.IsNullOrWhiteSpace(raw))
+                return Array.Empty<string>();
+            return raw.Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
+        }
+    }
+
     public long? SessionId
         => long.TryParse(Ctx?.Request.Headers[SessionIdHeader].FirstOrDefault(), out var v) && v > 0 ? v : null;
 
