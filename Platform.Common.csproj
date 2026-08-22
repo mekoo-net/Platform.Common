@@ -7,7 +7,7 @@
 
   <PropertyGroup>
     <RootNamespace>Platform.Common</RootNamespace>
-    <Description>Platform shared infrastructure (no business code, no contracts). Layout: Core/ (Results, Web, Correlation), Infrastructure/ (Caching, Discovery, Hosting, Observability, HealthChecks).</Description>
+    <Description>Platform shared infrastructure (no business code, no contracts). Layout: Core/ (Results, Web, Correlation, Paging), Infrastructure/ (Caching, Discovery, Hosting, Observability, HealthChecks).</Description>
     <IsPackable>false</IsPackable>
   </PropertyGroup>
 
