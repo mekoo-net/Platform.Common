@@ -125,6 +125,7 @@ Redis 侧 `ConfigurationOptions.Parse` 会**静默忽略**不认识的键——�
 | 拿结构化对象自己处理 | `configuration.GetPostgresOptions()` / `GetRedisOptions()` |
 | RabbitMQ 连接参数 | `RabbitMqConnectionResolver.GetRequired(configuration)` |
 | RabbitMQ 落到 MassTransit | `cfg.ApplyPlatformRabbitMqHost(settings)` |
+| Consul agent 地址（`AddServiceDiscovery` 已调用，服务里一般不用碰） | `ConsulConnectionResolver.GetRequired(configuration)` |
 
 **服务里不要自己 `GetSection("ConnectionStrings:Database").Get<T>()`。** 那样绕过合并顺序和校验，
 就会长出第四种写法——`Tavern.Gateway/Config/TavernConfigurationExtensions.cs` 是前车之鉴：
@@ -162,6 +163,39 @@ ConnectionStrings:
 - **不再有 guest/guest 默认值。** 旧实现在 URI 缺少用户信息时静默用 guest——那个账号在
   非 localhost 的 broker 上必然 ACCESS_REFUSED，而且掩盖了"根本没配"。现在 `Username` /
   `Password` 缺失直接报错。
+
+## Consul
+
+模型与解析在 `Infrastructure/Discovery/Consul/`，读取同样走 `ConnectionSectionReader.TryRead`。
+
+```yaml
+ConnectionStrings:
+  Consul:
+    Host: consul
+    Port: 8500          # 缺省 8500；Ssl: true 时缺省 8501
+    # 可选，用到再加：Ssl / Datacenter（缺省 = agent 所在 DC）/ Token（ACL，未开就不写）
+```
+
+`Url: "http://consul:8500"` 当底座、或整串 `Consul: "http://consul:8500"` 也都认。Url 写法按 URL 本身的
+语义取端口（`http://consul` 就是 80），不套 8500——反代在 443 后面的 agent 不会被悄悄改端口。
+
+以前写在 `Discovery:Consul:Address`。**旧节现在会让服务拒绝启动**，报错里直接给出新写法。
+部署机上的 `/opt/meeko/<服务>.yaml` 是手工维护的，升级镜像时最容易漏改；静默忽略的话只会报
+"缺少 ConnectionStrings:Consul"，看不出是搬了家。
+
+### 本服务注册成什么
+
+`Discovery:Service`（Name / Address / HealthCheck）整段删掉了，同样拒绝启动：
+
+- **Key 写死在代码里**：`builder.AddMeekoConsulRegistration(ServiceKeys.Billing)`。
+  `ServiceKeys` 是跨仓库契约——调用方 `consul:///billing` 认的也是它，一侧改了另一侧不报错，只是找不到实例。
+- **地址由 `LocalServiceInstance` 推导**：主机 = 容器 hostname，端口 = `Kestrel:Endpoints:Http` /
+  `InternalRpc` 的端口。端口本来就写在 Kestrel 节里，不再抄第二遍。前提是 hostname 在同网段可解析：
+  compose 里**不要设 `hostname:`**，让 Docker 用容器短 ID（自定义网络里可解析、每个副本不同）。
+  写死成 Key 的话多副本注册 ID 相同，后起的会把先起的覆盖掉。
+- 健康检查固定打 `/health/live`（`HealthChecksExtensions.LivePath`），10s 一次、3s 超时、critical 1 分钟后摘除。
+
+`Discovery:*` 里只剩随代码走的 manifest：`Gateway:Routes`、`Products`、`Schedules`。
 
 ## Redis 超时
 
