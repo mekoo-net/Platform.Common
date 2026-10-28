@@ -128,8 +128,7 @@ Redis 侧 `ConfigurationOptions.Parse` 会**静默忽略**不认识的键——�
 | Consul agent 地址（`AddServiceDiscovery` 已调用，服务里一般不用碰） | `ConsulConnectionResolver.GetRequired(configuration)` |
 
 **服务里不要自己 `GetSection("ConnectionStrings:Database").Get<T>()`。** 那样绕过合并顺序和校验，
-就会长出第四种写法——`Tavern.Gateway/Config/TavernConfigurationExtensions.cs` 是前车之鉴：
-它自己实现了一遍 Url+连接池，还把 Redis URL 归一化整段抄了过去。
+就会长出第四种写法。总策略与反面例子见 [Platform.Common/README.md](../../../README.md#策略必须用公共组件禁止自造)。
 
 `ApplicationName`（PG）和 `ClientName`（Redis）留空时自动取 `Observability:ServiceName`，
 `pg_stat_activity` / `CLIENT LIST` 里能直接认出是哪个服务占着连接，不用再猜。
