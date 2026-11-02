@@ -67,59 +67,25 @@ public sealed record LocalServiceInstance(string Key, string Id, string Host, Ur
     /// 本机通往 Consul 的那块网卡的 IPv4。UDP 的 Connect 只让内核选路由、填本端地址，不发包，
     /// Consul 此刻不在线也取得到。不取「第一块非回环网卡」：容器挂多张网、宿主机有 docker0 / wg0 时，
     /// 枚举顺序和 Consul 能拨到哪张没有关系。
-    /// <para>Consul 主机名解析不了（compose 里 consul 容器还没起来）时退回 hostname，不让注册这件尽力而为的事
-    /// 把服务启动拦下；退回的地址在 Docker 自定义网络里照样可解析，跟改之前一样。</para>
+    /// <para>约定：注册地址必须是 Consul 拨得回来的地址，hostname / localhost 一律不用，也不留退路——取不到路由
+    /// （Consul 主机名在本机解析不了）就拒绝启动。退回 hostname 注册出去的是一个注定被摘掉的地址，服务看着在跑、
+    /// 调用方和遥测控制台却都找不到它，比起不来难查得多。回环只在 Consul 自己也在本机回环上（单机开发）时出现，
+    /// 那时它拨得回来。</para>
     /// </summary>
     private static string RouteToConsul(IConfiguration configuration)
     {
-        var consul = ConsulConnectionResolver.Resolve(configuration)?.Address;
-        if (consul is not null)
-        {
-            try
-            {
-                using var socket = new Socket(AddressFamily.InterNetwork, SocketType.Dgram, ProtocolType.Udp);
-                socket.Connect(consul.Host, consul.Port);
-                return ((IPEndPoint)socket.LocalEndPoint!).Address.ToString();
-            }
-            catch (SocketException)
-            {
-                // 落到下面退回 hostname。
-            }
-        }
-
-        return DialableHostName(Dns.GetHostName(), consul);
-    }
-
-    /// <summary>
-    /// 退回 hostname 时的把关。约定：注册地址必须是 Consul 拨得回来的地址，回环永远不算——唯一的例外是
-    /// Consul 自己也在本机回环上（单机开发），那时上面的路由给的就是 127.0.0.1，走不到这里。
-    /// <para>hostname 只解析到回环（<c>localhost</c>，或 Debian 把主机名映射到 127.0.1.1）就拒绝启动：注册一个
-    /// 注定被摘掉的地址，服务看着在跑、调用方和遥测控制台却都找不到它，比起不来难查得多。</para>
-    /// </summary>
-    internal static string DialableHostName(string hostName, Uri? consul)
-    {
-        if (!ResolvesOnlyToLoopback(hostName))
-            return hostName;
-
-        throw new InvalidOperationException(
-            $"取不到本机连 Consul（{consul?.Authority ?? "未配置"}）时用的源 IP，退回的 hostname '{hostName}' 又只解析到回环地址，"
-            + "注册出去 Consul 拨不回来。检查 ConnectionStrings:Consul 的主机名在本机能否解析。");
-    }
-
-    private static bool ResolvesOnlyToLoopback(string name)
-    {
-        if (string.Equals(name, "localhost", StringComparison.OrdinalIgnoreCase))
-            return true;
-
+        var consul = ConsulConnectionResolver.GetRequired(configuration).Address;
         try
         {
-            var addresses = Dns.GetHostAddresses(name);
-            return addresses.Length > 0 && addresses.All(IPAddress.IsLoopback);
+            using var socket = new Socket(AddressFamily.InterNetwork, SocketType.Dgram, ProtocolType.Udp);
+            socket.Connect(consul.Host, consul.Port);
+            return ((IPEndPoint)socket.LocalEndPoint!).Address.ToString();
         }
-        catch (SocketException)
+        catch (SocketException ex)
         {
-            // 解析不了不等于回环：Docker 网络里容器名只在网内可解析，交给 Consul 那边去拨。
-            return false;
+            throw new InvalidOperationException(
+                $"取不到本机连 Consul（{consul.Authority}）时用的源 IP，推不出注册地址。"
+                + "检查 ConnectionStrings:Consul 的主机名在本机能否解析。", ex);
         }
     }
 
