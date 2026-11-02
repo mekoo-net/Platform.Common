@@ -25,45 +25,70 @@ public sealed class ObservabilityOptions
     public bool EnableHangfireInstrumentation { get; set; }
 
     /// <summary>
-    /// 本服务发起的调用在遥测控制台里归哪个业务世界。随 Consul 注册写进 Service Meta
-    /// （<see cref="Discovery.WorldServiceMeta"/>），控制台从 catalog 发现，不再维护一份名单。
-    /// <see cref="ObservabilityWorldOptions.Key"/> 为空 = 不归任何世界（纯下游服务）。
+    /// 本服务在业务层级树上的位置。随 Consul 注册写进 Service Meta
+    /// （<see cref="Discovery.WorldServiceMeta"/>），控制台读整棵树汇总，不再维护一份名单。
+    /// <see cref="ObservabilityWorldOptions.Path"/> 为空 = 不在树上（纯下游服务）。
     /// </summary>
     public ObservabilityWorldOptions World { get; set; } = new();
 }
 
 /// <summary>
-/// 本服务所属的业务世界。由服务在代码里用 <see cref="Default"/> 给出，
-/// yaml <c>Observability:World</c> 可以整段覆盖。同一世界的各服务应声明同一个 Key 和 Label。
+/// 本服务在业务层级树上的位置，如 <c>meeko/product/yomi/gateway</c>：最后一段是组件，前面是它所属的业务。
+/// 父路径相同的组件就是同一个业务——Yomi 的网关和平台服务都挂在 <c>meeko/product/yomi</c> 下，
+/// 控制台据此把它们归到一起，而不是各自成一个世界。
+/// 由服务在代码里用 <see cref="Product"/> / <see cref="Platform"/> 给出，yaml <c>Observability:World</c> 可以整段覆盖。
 /// </summary>
 public sealed class ObservabilityWorldOptions
 {
+    public const string Root = "meeko";
+    private const string RootLabel = "Meeko";
+
     /// <summary>
-    /// 代码里给的默认声明。yaml 已经写了 <see cref="Key"/> 就整段以 yaml 为准、一个字段都不混，
-    /// 否则 yaml 改了 Key 却沿用代码的 Label，会拼出一个谁都没声明过的世界。
+    /// 产品的一个组件：<c>meeko/product/{product}/{component}</c>。
+    /// 同一产品的各组件 <paramref name="productLabel"/>、截获、业务信息应一致，不一致时控制台取第一个并打警告。
+    /// </summary>
+    public ObservabilityWorldOptions Product(
+        string product, string productLabel, string component, string componentLabel,
+        string? captureNamespace = null, string? insightService = null) =>
+        Default(
+            $"{Root}/product/{product}/{component}",
+            $"{RootLabel}/Product/{productLabel}/{componentLabel}",
+            captureNamespace,
+            insightService);
+
+    /// <summary>平台的一个服务：<c>meeko/platform/{component}</c>。</summary>
+    public ObservabilityWorldOptions Platform(string component, string componentLabel) =>
+        Default($"{Root}/platform/{component}", $"{RootLabel}/Platform/{componentLabel}");
+
+    /// <summary>
+    /// 代码里给的默认声明。yaml 已经写了 <see cref="Path"/> 就整段以 yaml 为准、一个字段都不混，
+    /// 否则 yaml 改了路径却沿用代码的显示名，会拼出一个谁都没声明过的节点。
     /// </summary>
     /// <remarks>
     /// 放代码而不是 yaml：部署机上的 yaml 是单独维护的种子文件，新镜像不会更新它，
     /// 写在仓库 yaml 里的声明到不了线上。
     /// </remarks>
     public ObservabilityWorldOptions Default(
-        string key, string label, string? captureNamespace = null, string? insightService = null)
+        string path, string? labels = null, string? captureNamespace = null, string? insightService = null)
     {
-        if (!string.IsNullOrWhiteSpace(Key))
+        if (!string.IsNullOrWhiteSpace(Path))
             return this;
 
-        Key = key;
-        Label = label;
+        Path = path;
+        Labels = labels;
         CaptureNamespace = captureNamespace;
         InsightService = insightService;
         return this;
     }
 
-    /// <summary>世界的稳定标识，进 URL（<c>?domain=yomi.gateway</c>），改了旧链接就失效。</summary>
-    public string? Key { get; set; }
+    /// <summary>
+    /// 层级路径，段之间用 <c>/</c>，至少两段（业务 + 组件），段名只用小写字母、数字和 <c>-</c>。
+    /// 业务那部分进控制台的 URL（<c>?domain=meeko/product/yomi</c>），改了旧链接就失效。
+    /// </summary>
+    public string? Path { get; set; }
 
-    /// <summary>控制台上显示的名字。缺省用 Key。</summary>
-    public string? Label { get; set; }
+    /// <summary>与 <see cref="Path"/> 逐段对应的显示名，同样用 <c>/</c> 分隔；空着的段用段名。</summary>
+    public string? Labels { get; set; }
 
     /// <summary>
     /// 截获策略所在的 Consul KV 命名空间（<c>{CaptureNamespace}/config/dump</c>）。
@@ -73,7 +98,7 @@ public sealed class ObservabilityWorldOptions
 
     /// <summary>
     /// 按 trace 查业务信息（<c>ITraceInsightService</c>）的服务的 Consul 注册 Key，
-    /// 不是 service.name。空 = 这个世界没有业务信息。
+    /// 不是 service.name。空 = 这个业务没有业务信息。
     /// </summary>
     public string? InsightService { get; set; }
 }
