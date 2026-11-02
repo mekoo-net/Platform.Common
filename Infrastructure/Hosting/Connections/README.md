@@ -180,13 +180,12 @@ ConnectionStrings:
 `Url: "http://consul:8500"` 当底座、或整串 `Consul: "http://consul:8500"` 也都认。Url 写法按 URL 本身的
 语义取端口（`http://consul` 就是 80），不套 8500——反代在 443 后面的 agent 不会被悄悄改端口。
 
-以前写在 `Discovery:Consul:Address`。**旧节现在会让服务拒绝启动**，报错里直接给出新写法。
-部署机上的 `/opt/meeko/<服务>.yaml` 是手工维护的，升级镜像时最容易漏改；静默忽略的话只会报
-"缺少 ConnectionStrings:Consul"，看不出是搬了家。
+以前写在 `Discovery:Consul:Address`，现在不读了，留在 yaml 里不影响启动。只留旧节、没写
+`ConnectionStrings:Consul` 的话会报"缺少 ConnectionStrings:Consul"——那就是搬了家没改。
 
 ### 本服务注册成什么
 
-`Discovery:Service`（Name / Address / HealthCheck）整段删掉了，同样拒绝启动：
+`Discovery:Service`（Name / Address / HealthCheck）整段删掉了，留在 yaml 里也不读：
 
 - **Key 写死在代码里**：`builder.AddMeekoConsulRegistration(ServiceKeys.Billing)`。
   `ServiceKeys` 是跨仓库契约——调用方 `consul:///billing` 认的也是它，一侧改了另一侧不报错，只是找不到实例。
@@ -216,8 +215,8 @@ ConnectionStrings:
 只支持 OTLP/gRPC。`Url: "http://collector:4317"` 当底座、或整串 `Otlp: "http://collector:4317"` 也认；
 带路径的地址（`…:4318/v1/traces`）是 OTLP/HTTP 的写法，gRPC 导出器连上去只会默默失败，所以直接报错。
 
-以前写在 `Observability:OtlpEndpoint`。**旧键有值会让服务拒绝启动**，理由同 Consul：静默忽略的话
-遥测会无声无息地断掉。旧键为空（`""` / `null`）本来就是不导出，跟新写法不配等价，不拦。
+以前写在 `Observability:OtlpEndpoint`，现在不读了，留在 yaml 里不影响启动。只留旧键、没写
+`ConnectionStrings:Otlp` 的话遥测就不导出——遥测断了先看这里。
 
 ## Redis 超时
 

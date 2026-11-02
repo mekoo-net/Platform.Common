@@ -16,7 +16,6 @@ public static class DiscoveryServiceExtensions
     /// </summary>
     public static WebApplicationBuilder AddServiceDiscovery(this WebApplicationBuilder builder)
     {
-        RejectRetiredSections(builder.Configuration);
         var settings = ConsulConnectionResolver.GetRequired(builder.Configuration);
 
         builder.Services.AddSingleton<IConsulClient>(_ => new ConsulClient(cfg =>
@@ -29,26 +28,5 @@ public static class DiscoveryServiceExtensions
         }));
 
         return builder;
-    }
-
-    // 部署机上的 yaml 是手工维护的，升级镜像时最容易漏改。旧节若静默忽略：Consul 那节只会报成"缺少
-    // ConnectionStrings:Consul"，看不出是搬了家；Service 那节会让人以为改 Address 还能改注册地址。
-    // 所以见到旧节直接拒绝启动，并把新写法写进报错。
-    private static void RejectRetiredSections(IConfiguration configuration)
-    {
-        List<string>? retired = null;
-
-        if (configuration.GetSection("Discovery:Consul").Exists())
-            (retired ??= []).Add("Discovery:Consul → 改写到 ConnectionStrings:Consul（Host / Port / Datacenter / Token）");
-
-        if (configuration.GetSection("Discovery:Service").Exists())
-            (retired ??= []).Add("Discovery:Service → 整段删除：Key 写死在代码（ServiceKeys），地址由连 Consul 的源 IP + Kestrel 端点推导");
-
-        if (retired is not null)
-        {
-            throw new InvalidOperationException(
-                "服务发现配置已迁移，以下节不再读取：" + string.Join("；", retired)
-                + "。仓库里的 yaml 和部署机上的 /opt/meeko/<服务>.yaml 都要改。");
-        }
     }
 }

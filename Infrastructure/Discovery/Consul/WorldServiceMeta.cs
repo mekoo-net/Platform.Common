@@ -43,14 +43,6 @@ public static class WorldServiceMeta
         var section = configuration.GetSection(ObservabilityOptions.SectionName);
         var worldSection = section.GetSection(nameof(ObservabilityOptions.World));
 
-        // 绑定器会静默忽略不认识的键：部署机 yaml 里留着旧的扁平 Key，看上去改了世界，实际一个字段都没生效。
-        if (Clean(worldSection["Key"]) is { } legacyKey)
-        {
-            throw new InvalidOperationException(
-                $"{ObservabilityOptions.SectionName}:World:Key='{legacyKey}' 已不再支持，改写成层级路径 " +
-                $"{ObservabilityOptions.SectionName}:World:Path（如 meeko/product/yomi/gateway），或删掉整段用代码里的声明。");
-        }
-
         var world = effective?.World
             ?? worldSection.Get<ObservabilityWorldOptions>()
             ?? new ObservabilityWorldOptions();

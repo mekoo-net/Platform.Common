@@ -24,8 +24,6 @@ public static class ObservabilityExtensions
         this IHostApplicationBuilder builder,
         Action<ObservabilityOptions>? configure = null)
     {
-        RejectRetiredOtlpEndpoint(builder.Configuration);
-
         var options = new ObservabilityOptions();
         builder.Configuration.GetSection(ObservabilityOptions.SectionName).Bind(options);
         options.OtlpEndpoint = OtlpConnectionResolver.Resolve(builder.Configuration);
@@ -121,19 +119,5 @@ public static class ObservabilityExtensions
             });
 
         return builder;
-    }
-
-    // 部署机上的 yaml 是手工维护的，升级镜像时最容易漏改。旧键有值却静默忽略的话，遥测会无声无息地断掉，
-    // 所以直接拒绝启动并把新写法写进报错。值为空本来就是"不导出"，跟新写法不配等价，放过。
-    private static void RejectRetiredOtlpEndpoint(IConfiguration configuration)
-    {
-        var retired = configuration[$"{ObservabilityOptions.SectionName}:OtlpEndpoint"];
-        if (string.IsNullOrWhiteSpace(retired))
-            return;
-
-        throw new InvalidOperationException(
-            $"{ObservabilityOptions.SectionName}:OtlpEndpoint 已迁到 {OtlpConnectionOptions.SectionName}，不再读取。"
-            + $"把 '{retired}' 改写成 {OtlpConnectionOptions.SectionName}:Host / Port（拆字段写法），并删掉旧键。"
-            + "仓库里的 yaml 和部署机上的 /opt/meeko/<服务>.yaml 都要改。");
     }
 }
