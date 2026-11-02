@@ -42,7 +42,7 @@ public static class DiscoveryServiceExtensions
             (retired ??= []).Add("Discovery:Consul → 改写到 ConnectionStrings:Consul（Host / Port / Datacenter / Token）");
 
         if (configuration.GetSection("Discovery:Service").Exists())
-            (retired ??= []).Add("Discovery:Service → 整段删除：Key 写死在代码（ServiceKeys），地址由 hostname + Kestrel 端点推导");
+            (retired ??= []).Add("Discovery:Service → 整段删除：Key 写死在代码（ServiceKeys），地址由连 Consul 的源 IP + Kestrel 端点推导");
 
         if (retired is not null)
         {

@@ -190,10 +190,10 @@ ConnectionStrings:
 
 - **Key 写死在代码里**：`builder.AddMeekoConsulRegistration(ServiceKeys.Billing)`。
   `ServiceKeys` 是跨仓库契约——调用方 `consul:///billing` 认的也是它，一侧改了另一侧不报错，只是找不到实例。
-- **地址由 `LocalServiceInstance` 推导**：主机 = 容器 hostname，端口 = `Kestrel:Endpoints:Http` /
-  `InternalRpc` 的端口。端口本来就写在 Kestrel 节里，不再抄第二遍。前提是 hostname 在同网段可解析：
-  compose 里**不要设 `hostname:`**，让 Docker 用容器短 ID（自定义网络里可解析、每个副本不同）。
-  写死成 Key 的话多副本注册 ID 相同，后起的会把先起的覆盖掉。
+- **地址由 `LocalServiceInstance` 推导**：主机 = 本机连 Consul 时用的源 IP，端口 = `Kestrel:Endpoints:Http` /
+  `InternalRpc` 的端口。端口本来就写在 Kestrel 节里，不再抄第二遍。主机以前取容器 hostname，host 网络下
+  它是宿主机名（可能就叫 `localhost`），另一台机器上的 Consul 做健康检查会打到它自己，1 分钟后把服务摘掉。
+  源 IP 是 Consul 拨得回来的那块网卡，不挑网络模式；Consul 主机名解析不了时才退回 hostname。
 - 健康检查固定打 `/health/live`（`HealthChecksExtensions.LivePath`），10s 一次、3s 超时、critical 1 分钟后摘除。
 
 `Discovery:*` 里只剩随代码走的 manifest：`Gateway:Routes`、`Products`、`Schedules`。
