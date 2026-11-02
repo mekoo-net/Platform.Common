@@ -13,7 +13,7 @@ public static class SerilogExtensions
     /// <summary>
     /// 把 Serilog 接入 ASP.NET Core，主 sink 为 OTLP；可选 Console。
     /// 必须在 AddPlatformObservability 之后调用。
-    /// <c>Logging:Console</c> 仅控制是否写 stdout，与 <c>Observability:OtlpEndpoint</c> 无关；默认 false。
+    /// <c>Logging:Console</c> 仅控制是否写 stdout，与 <c>ConnectionStrings:Otlp</c> 无关；默认 false。
     /// </summary>
     public static WebApplicationBuilder UsePlatformSerilog(this WebApplicationBuilder builder)
     {
@@ -30,20 +30,20 @@ public static class SerilogExtensions
             ApplyLoggingLogLevels(lc, configuration);
 
             var consoleEnabled = configuration.GetValue("Logging:Console", defaultValue: false);
-            var otlpEnabled = !string.IsNullOrWhiteSpace(observability.OtlpEndpoint);
+            var otlpEndpoint = observability.OtlpEndpoint;
 
             // Console 先于 OTLP 注册，避免远端 sink 异常影响本地可见性。
             // 兜底：未显式开 Console 且没有配置 OTLP 时，仍写 stdout，避免日志进入黑洞、排障无据可查。
-            if (consoleEnabled || !otlpEnabled)
+            if (consoleEnabled || otlpEndpoint is null)
             {
                 lc.WriteTo.Console();
             }
 
-            if (otlpEnabled)
+            if (otlpEndpoint is not null)
             {
                 lc.WriteTo.OpenTelemetry(otlp =>
                 {
-                    otlp.Endpoint = observability.OtlpEndpoint;
+                    otlp.Endpoint = otlpEndpoint.GetLeftPart(UriPartial.Authority);
                     otlp.Protocol = OtlpProtocol.Grpc;
                     otlp.ResourceAttributes = new Dictionary<string, object>
                     {

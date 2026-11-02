@@ -126,12 +126,14 @@ Redis 侧 `ConfigurationOptions.Parse` 会**静默忽略**不认识的键——�
 | RabbitMQ 连接参数 | `RabbitMqConnectionResolver.GetRequired(configuration)` |
 | RabbitMQ 落到 MassTransit | `cfg.ApplyPlatformRabbitMqHost(settings)` |
 | Consul agent 地址（`AddServiceDiscovery` 已调用，服务里一般不用碰） | `ConsulConnectionResolver.GetRequired(configuration)` |
+| OTLP 采集端地址（`AddPlatformObservability` 已调用，服务里一般不用碰） | `OtlpConnectionResolver.Resolve(configuration)` |
 
 **服务里不要自己 `GetSection("ConnectionStrings:Database").Get<T>()`。** 那样绕过合并顺序和校验，
 就会长出第四种写法。总策略与反面例子见 [Platform.Common/README.md](../../../README.md#策略必须用公共组件禁止自造)。
 
 `ApplicationName`（PG）和 `ClientName`（Redis）留空时自动取 `Observability:ServiceName`，
-`pg_stat_activity` / `CLIENT LIST` 里能直接认出是哪个服务占着连接，不用再猜。
+`pg_stat_activity` / `CLIENT LIST` 里能直接认出是哪个服务占着连接，不用再猜。这个值不用写进 yaml：
+`AddPlatformObservability` 会把代码里写死的 service.name 回写到这个键，所以要在它之后再读连接配置。
 
 ## RabbitMQ
 
@@ -195,6 +197,25 @@ ConnectionStrings:
 - 健康检查固定打 `/health/live`（`HealthChecksExtensions.LivePath`），10s 一次、3s 超时、critical 1 分钟后摘除。
 
 `Discovery:*` 里只剩随代码走的 manifest：`Gateway:Routes`、`Products`、`Schedules`。
+
+## OTLP
+
+模型与解析在 `Infrastructure/Observability/`，读取同样走 `ConnectionSectionReader.TryRead`。
+`AddPlatformObservability` 里已经读了，服务里一般不用碰。
+
+```yaml
+ConnectionStrings:
+  # Host 留空 = 不导出遥测（日志退回 stdout）。
+  Otlp:
+    Host: null
+    Port: 4317          # 缺省 4317；collector 开了 TLS 就加 Ssl: true，端口不变
+```
+
+只支持 OTLP/gRPC。`Url: "http://collector:4317"` 当底座、或整串 `Otlp: "http://collector:4317"` 也认；
+带路径的地址（`…:4318/v1/traces`）是 OTLP/HTTP 的写法，gRPC 导出器连上去只会默默失败，所以直接报错。
+
+以前写在 `Observability:OtlpEndpoint`。**旧键有值会让服务拒绝启动**，理由同 Consul：静默忽略的话
+遥测会无声无息地断掉。旧键为空（`""` / `null`）本来就是不导出，跟新写法不配等价，不拦。
 
 ## Redis 超时
 

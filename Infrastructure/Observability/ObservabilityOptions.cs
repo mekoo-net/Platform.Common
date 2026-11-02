@@ -7,8 +7,11 @@ public sealed class ObservabilityOptions
     /// <summary>service.name 资源属性。每个服务必须不同。</summary>
     public string ServiceName { get; set; } = "meeko.unknown";
 
-    /// <summary>OTLP/gRPC 端点；为空表示禁用导出。</summary>
-    public string? OtlpEndpoint { get; set; }
+    /// <summary>
+    /// OTLP/gRPC 端点；<c>null</c> 表示禁用导出。由 AddPlatformObservability 从 <c>ConnectionStrings:Otlp</c>
+    /// 解析（<see cref="OtlpConnectionResolver"/>），setter 不公开，<c>Observability</c> 节绑定不到它。
+    /// </summary>
+    public Uri? OtlpEndpoint { get; internal set; }
 
     /// <summary>额外 ActivitySource，按需注册（如 Yarp.ReverseProxy）。</summary>
     public string[] AdditionalSources { get; set; } = Array.Empty<string>();

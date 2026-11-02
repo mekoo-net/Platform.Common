@@ -54,7 +54,7 @@ Url + 连接池合并，抄了一份 Redis URL 归一化，外加三个无人引
 | gRPC 通道 | `GrpcClientDefaults.CreateChannel()` |
 | Kestrel | `ConfigurePlatformKestrel()` |
 | 缓存 | `AddPlatformCache()` + yaml `FusionCache:Profiles` + `ApplyProfile()` |
-| 遥测 / 日志 | `AddPlatformObservability()` / `UsePlatformSerilog()` / `PlatformActivitySource` |
+| 遥测 / 日志 | `AddPlatformObservability()` / `UsePlatformSerilog()` / `PlatformActivitySource`；采集端地址 `ConnectionStrings:Otlp`（`OtlpConnectionResolver`） |
 | 健康检查 | `MapHealthChecks()`（`/health/live`） |
 | 关联 ID | `UseCorrelationId()` / `CorrelationContext` |
 | JSON | REST 用 `AddPlatformJsonOptions()`；手写序列化用 `PlatformJson.Web` / `PlatformJson.Exact` |
