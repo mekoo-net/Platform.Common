@@ -194,6 +194,8 @@ ConnectionStrings:
   `InternalRpc` 的端口。端口本来就写在 Kestrel 节里，不再抄第二遍。主机以前取容器 hostname，host 网络下
   它是宿主机名（可能就叫 `localhost`），另一台机器上的 Consul 做健康检查会打到它自己，1 分钟后把服务摘掉。
   源 IP 是 Consul 拨得回来的那块网卡，不挑网络模式；Consul 主机名解析不了时才退回 hostname。
+  **约定：注册地址永远不能是回环。** 唯一例外是 Consul 自己也在本机回环上（单机开发），那时路由给的就是
+  127.0.0.1；退回的 hostname 只解析到回环（`localhost` / 127.0.1.1）时直接拒绝启动，不注册一个注定被摘掉的地址。
 - 健康检查固定打 `/health/live`（`HealthChecksExtensions.LivePath`），10s 一次、3s 超时、critical 1 分钟后摘除。
 
 `Discovery:*` 里只剩随代码走的 manifest：`Gateway:Routes`、`Products`、`Schedules`。

@@ -72,18 +72,54 @@ public sealed record LocalServiceInstance(string Key, string Id, string Host, Ur
     /// </summary>
     private static string RouteToConsul(IConfiguration configuration)
     {
-        if (ConsulConnectionResolver.Resolve(configuration)?.Address is not { } consul)
-            return Dns.GetHostName();
+        var consul = ConsulConnectionResolver.Resolve(configuration)?.Address;
+        if (consul is not null)
+        {
+            try
+            {
+                using var socket = new Socket(AddressFamily.InterNetwork, SocketType.Dgram, ProtocolType.Udp);
+                socket.Connect(consul.Host, consul.Port);
+                return ((IPEndPoint)socket.LocalEndPoint!).Address.ToString();
+            }
+            catch (SocketException)
+            {
+                // 落到下面退回 hostname。
+            }
+        }
+
+        return DialableHostName(Dns.GetHostName(), consul);
+    }
+
+    /// <summary>
+    /// 退回 hostname 时的把关。约定：注册地址必须是 Consul 拨得回来的地址，回环永远不算——唯一的例外是
+    /// Consul 自己也在本机回环上（单机开发），那时上面的路由给的就是 127.0.0.1，走不到这里。
+    /// <para>hostname 只解析到回环（<c>localhost</c>，或 Debian 把主机名映射到 127.0.1.1）就拒绝启动：注册一个
+    /// 注定被摘掉的地址，服务看着在跑、调用方和遥测控制台却都找不到它，比起不来难查得多。</para>
+    /// </summary>
+    internal static string DialableHostName(string hostName, Uri? consul)
+    {
+        if (!ResolvesOnlyToLoopback(hostName))
+            return hostName;
+
+        throw new InvalidOperationException(
+            $"取不到本机连 Consul（{consul?.Authority ?? "未配置"}）时用的源 IP，退回的 hostname '{hostName}' 又只解析到回环地址，"
+            + "注册出去 Consul 拨不回来。检查 ConnectionStrings:Consul 的主机名在本机能否解析。");
+    }
+
+    private static bool ResolvesOnlyToLoopback(string name)
+    {
+        if (string.Equals(name, "localhost", StringComparison.OrdinalIgnoreCase))
+            return true;
 
         try
         {
-            using var socket = new Socket(AddressFamily.InterNetwork, SocketType.Dgram, ProtocolType.Udp);
-            socket.Connect(consul.Host, consul.Port);
-            return ((IPEndPoint)socket.LocalEndPoint!).Address.ToString();
+            var addresses = Dns.GetHostAddresses(name);
+            return addresses.Length > 0 && addresses.All(IPAddress.IsLoopback);
         }
         catch (SocketException)
         {
-            return Dns.GetHostName();
+            // 解析不了不等于回环：Docker 网络里容器名只在网内可解析，交给 Consul 那边去拨。
+            return false;
         }
     }
 
