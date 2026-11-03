@@ -17,7 +17,7 @@ namespace Platform.Common.Discovery;
 /// </remarks>
 public static class WorldServiceMeta
 {
-    /// <summary>遥测里的 service.name。和 Consul 注册名（<see cref="ServiceKeys"/>）不是一回事。</summary>
+    /// <summary>遥测里的 service.name。和 Consul 注册名（Platform.Common 的 <c>ServiceKeys</c>）不是一回事。</summary>
     public const string ServiceName = "meeko-otel-service";
 
     /// <summary>层级路径，如 <c>meeko/product/yomi/gateway</c>。</summary>

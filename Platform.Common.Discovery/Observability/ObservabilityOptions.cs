@@ -9,7 +9,7 @@ public sealed class ObservabilityOptions
 
     /// <summary>
     /// OTLP/gRPC 端点；<c>null</c> 表示禁用导出。由 AddPlatformObservability 从 <c>ConnectionStrings:Otlp</c>
-    /// 解析（<see cref="OtlpConnectionResolver"/>），setter 不公开，<c>Observability</c> 节绑定不到它。
+    /// 解析（Platform.Common 的 <c>OtlpConnectionResolver</c>），setter 不公开，<c>Observability</c> 节绑定不到它。
     /// </summary>
     public Uri? OtlpEndpoint { get; internal set; }
 

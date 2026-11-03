@@ -1,0 +1,28 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <!--
+    从 Platform.Common 拆出来给非 Web 宿主用（OneApi 的 provider 是 Worker，跑在 dotnet/runtime 镜像里）。
+    Platform.Common 带 Microsoft.AspNetCore.App 框架引用：引用链上只要有它，宿主的 runtimeconfig 就要求
+    ASP.NET Core 共享框架，不管代码用没用到，runtime 镜像里没有，进程启动即退出。
+    所以这里只许依赖 Microsoft.Extensions.* 抽象和 Consul，不能加 FrameworkReference，也不能引用 Platform.Common。
+    ObservabilityOptions 放这里是因为 WorldServiceMeta 从它读业务树声明。
+  -->
+
+  <PropertyGroup>
+    <Description>Consul registration base and business-tree service meta, without ASP.NET Core. Platform.Common references it; non-web hosts (OneApi providers) reference only this.</Description>
+    <IsPackable>false</IsPackable>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <!-- ObservabilityOptions.OtlpEndpoint 只由 Platform.Common 的 AddPlatformObservability 赋值。 -->
+    <InternalsVisibleTo Include="Platform.Common" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Consul" />
+    <PackageReference Include="Microsoft.Extensions.Configuration.Binder" />
+    <PackageReference Include="Microsoft.Extensions.Hosting.Abstractions" />
+    <PackageReference Include="Microsoft.Extensions.Logging.Abstractions" />
+  </ItemGroup>
+
+</Project>
