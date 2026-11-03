@@ -1,5 +1,3 @@
-using System.Net;
-using System.Net.Sockets;
 using Consul;
 using Microsoft.Extensions.Configuration;
 using Platform.Common.HealthChecks;
@@ -16,7 +14,7 @@ namespace Platform.Common.Discovery;
 /// <para>主机以前取容器 hostname，前提是同网段可解析。host 网络下 hostname 是宿主机名（Yomi 网关那台就叫
 /// <c>localhost</c>），Consul 在另一台机器上做健康检查打的是它自己，1 分钟后把服务摘掉。源 IP 不挑网络模式：
 /// 健康检查是 Consul 从它那边拨回来，和 Consul 同一张网的那块网卡正是它能拨到的；Docker 自定义网络里
-/// 得到的是容器 IP，每个副本不同；换到 K8s 就是 Pod IP。OneApi.Gateway 的 <c>AdvertiseAddress</c> 是同一个做法。</para>
+/// 得到的是容器 IP，每个副本不同；换到 K8s 就是 Pod IP。取法见 <see cref="ConsulRoute.SourceAddress"/>。</para>
 /// </remarks>
 public sealed record LocalServiceInstance(string Key, string Id, string Host, Uri RestBaseUrl, Uri? GrpcBaseUrl)
 {
@@ -38,7 +36,9 @@ public sealed record LocalServiceInstance(string Key, string Id, string Host, Ur
         ArgumentException.ThrowIfNullOrWhiteSpace(key);
         ArgumentNullException.ThrowIfNull(configuration);
 
-        var host = string.IsNullOrWhiteSpace(hostName) ? RouteToConsul(configuration) : hostName.Trim();
+        var host = string.IsNullOrWhiteSpace(hostName)
+            ? ConsulRoute.SourceAddress(ConsulConnectionResolver.GetRequired(configuration).Address).ToString()
+            : hostName.Trim();
 
         var http = ReadEndpoint(configuration, HttpEndpoint)
             ?? throw new InvalidOperationException(
@@ -62,32 +62,6 @@ public sealed record LocalServiceInstance(string Key, string Id, string Host, Ur
         Timeout = CheckTimeout,
         DeregisterCriticalServiceAfter = DeregisterAfter,
     };
-
-    /// <summary>
-    /// 本机通往 Consul 的那块网卡的 IPv4。UDP 的 Connect 只让内核选路由、填本端地址，不发包，
-    /// Consul 此刻不在线也取得到。不取「第一块非回环网卡」：容器挂多张网、宿主机有 docker0 / wg0 时，
-    /// 枚举顺序和 Consul 能拨到哪张没有关系。
-    /// <para>约定：注册地址必须是 Consul 拨得回来的地址，hostname / localhost 一律不用，也不留退路——取不到路由
-    /// （Consul 主机名在本机解析不了）就拒绝启动。退回 hostname 注册出去的是一个注定被摘掉的地址，服务看着在跑、
-    /// 调用方和遥测控制台却都找不到它，比起不来难查得多。回环只在 Consul 自己也在本机回环上（单机开发）时出现，
-    /// 那时它拨得回来。</para>
-    /// </summary>
-    private static string RouteToConsul(IConfiguration configuration)
-    {
-        var consul = ConsulConnectionResolver.GetRequired(configuration).Address;
-        try
-        {
-            using var socket = new Socket(AddressFamily.InterNetwork, SocketType.Dgram, ProtocolType.Udp);
-            socket.Connect(consul.Host, consul.Port);
-            return ((IPEndPoint)socket.LocalEndPoint!).Address.ToString();
-        }
-        catch (SocketException ex)
-        {
-            throw new InvalidOperationException(
-                $"取不到本机连 Consul（{consul.Authority}）时用的源 IP，推不出注册地址。"
-                + "检查 ConnectionStrings:Consul 的主机名在本机能否解析。", ex);
-        }
-    }
 
     private static Uri? ReadEndpoint(IConfiguration configuration, string name)
     {

@@ -47,11 +47,8 @@ public static class WorldServiceMeta
             ?? worldSection.Get<ObservabilityWorldOptions>()
             ?? new ObservabilityWorldOptions();
 
-        if (Clean(world.Path) is null)
+        if (Clean(world.Path) is not { } path)
             return null;
-
-        if (!TryNormalize(world.Path, world.Labels, out var path, out var labels, out var error))
-            throw new InvalidOperationException($"{ObservabilityOptions.SectionName}:World 声明有误：{error}");
 
         var serviceName = Clean(effective?.ServiceName) ?? Clean(section[nameof(ObservabilityOptions.ServiceName)]);
         if (serviceName is null || serviceName == new ObservabilityOptions().ServiceName)
@@ -62,22 +59,37 @@ public static class WorldServiceMeta
                 $"声明了 {ObservabilityOptions.SectionName}:World:Path='{path}'，但没配 {ObservabilityOptions.SectionName}:ServiceName。");
         }
 
-        var declaration = new WorldDeclaration(
+        return Write(meta, new WorldDeclaration(
             serviceName,
             path,
-            labels,
+            Clean(world.Labels) ?? "",
             Clean(world.CaptureNamespace),
-            Clean(world.InsightService));
+            Clean(world.InsightService)));
+    }
 
-        meta[ServiceName] = serviceName;
-        meta[Path] = declaration.Path;
-        meta[PathLabels] = declaration.Labels;
-        if (declaration.CaptureNamespace is { } capture)
+    /// <summary>
+    /// 把一条声明写进 <paramref name="meta"/>，返回校验、补齐显示名之后的那一份。
+    /// 不经过 <see cref="ObservabilityOptions"/> 的宿主（OneApi）直接用这个；声明写错就抛，不注册一个读的一方会丢掉的节点。
+    /// </summary>
+    public static WorldDeclaration Write(IDictionary<string, string> meta, WorldDeclaration declaration)
+    {
+        ArgumentNullException.ThrowIfNull(meta);
+        ArgumentNullException.ThrowIfNull(declaration);
+
+        if (!TryNormalize(declaration.Path, declaration.Labels, out var path, out var labels, out var error))
+            throw new ArgumentException($"业务层级树的声明有误：{error}", nameof(declaration));
+
+        var normalized = declaration with { Path = path, Labels = labels };
+        meta[Path] = normalized.Path;
+        meta[PathLabels] = normalized.Labels;
+        if (normalized.ServiceName is { } serviceName)
+            meta[ServiceName] = serviceName;
+        if (normalized.CaptureNamespace is { } capture)
             meta[CaptureNamespace] = capture;
-        if (declaration.InsightService is { } insight)
+        if (normalized.InsightService is { } insight)
             meta[InsightService] = insight;
 
-        return declaration;
+        return normalized;
     }
 
     /// <summary>
@@ -153,8 +165,7 @@ public static class WorldServiceMeta
 
 /// <summary>一个服务实例对自己在业务层级树上位置的声明。</summary>
 /// <param name="ServiceName">
-/// 遥测 service.name，大小写敏感（ClickHouse 存原样字符串）。null = 这个组件不导出遥测（OneApi 的 provider）。
-/// 本库的 <see cref="WorldServiceMeta.Write"/> 总会写；只有别的仓库自己写 Meta 时才可能没有。
+/// 遥测 service.name，大小写敏感（ClickHouse 存原样字符串）。null = 这个组件不导出遥测（OneApi 的厂商实例）。
 /// </param>
 /// <param name="Path">层级路径，如 <c>meeko/product/yomi/gateway</c>，已校验，至少两段。</param>
 /// <param name="Labels">与 <paramref name="Path"/> 逐段对应的显示名，段数相同。</param>
