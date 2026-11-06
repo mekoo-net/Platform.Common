@@ -3,7 +3,7 @@ using System.Security.Authentication;
 namespace Platform.Common.Messaging;
 
 /// <summary>
-/// RabbitMQ 连接配置（yaml 节 <c>ConnectionStrings:RabbitMq</c>）。
+/// RabbitMQ 连接配置（yaml 节 <c>Connection:RabbitMq</c>）。
 /// 形态与读取规则跟 PostgreSQL / Redis 一致，见
 /// <c>Platform.Common/Infrastructure/Hosting/Connections/README.md</c>。
 /// </summary>
@@ -14,7 +14,7 @@ namespace Platform.Common.Messaging;
 /// </remarks>
 public sealed class RabbitMqConnectionOptions
 {
-    public const string SectionName = "ConnectionStrings:RabbitMq";
+    public const string SectionName = "Connection:RabbitMq";
 
     // ---- 端点与身份 ----
 

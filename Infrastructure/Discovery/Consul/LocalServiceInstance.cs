@@ -29,7 +29,7 @@ public sealed record LocalServiceInstance(string Key, string Id, string Host, Ur
     private static readonly TimeSpan DeregisterAfter = TimeSpan.FromMinutes(1);
 
     /// <param name="key">本服务的 <see cref="ServiceKeys"/>。</param>
-    /// <param name="configuration">读 <c>Kestrel:Endpoints:*:Url</c> 与 <c>ConnectionStrings:Consul</c>。</param>
+    /// <param name="configuration">读 <c>Kestrel:Endpoints:*:Url</c> 与 <c>Connection:Consul</c>。</param>
     /// <param name="hostName">测试注入用；缺省取本机连 Consul 时的源 IP。</param>
     public static LocalServiceInstance Resolve(string key, IConfiguration configuration, string? hostName = null)
     {

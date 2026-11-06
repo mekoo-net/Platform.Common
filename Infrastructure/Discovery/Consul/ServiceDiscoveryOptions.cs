@@ -3,7 +3,7 @@ namespace Platform.Common.Discovery;
 /// <summary>
 /// 挂在平台网关后面的服务随注册发布的声明（yaml 节 <c>Discovery</c>，宿主也可以在代码里 PostConfigure）。
 /// 平台各服务和各产品服务是同一份：平台网关按 <see cref="Gateway"/> 建路由，Billing 按 <see cref="Products"/>
-/// 建产品目录，Jobs 按 <see cref="Schedules"/> 排任务。Consul 地址在 <c>ConnectionStrings:Consul</c>，
+/// 建产品目录，Jobs 按 <see cref="Schedules"/> 排任务。Consul 地址在 <c>Connection:Consul</c>，
 /// 本服务的 Key 写死在宿主代码里（<see cref="ServiceKeys"/>）。
 /// </summary>
 public sealed class ServiceDiscoveryOptions

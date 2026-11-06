@@ -3,7 +3,7 @@ using Microsoft.Extensions.Configuration;
 namespace Platform.Common.Hosting;
 
 /// <summary>
-/// <c>ConnectionStrings:*</c> 的统一读取规则。全平台只此一处解释这些节，服务里不要再自己 <c>Get&lt;T&gt;()</c>。
+/// <c>Connection:*</c> 的统一读取规则。全平台只此一处解释这些节，服务里不要再自己 <c>Get&lt;T&gt;()</c>。
 /// </summary>
 /// <remarks>
 /// 一个节点有三种合法写法，按这个顺序判定：

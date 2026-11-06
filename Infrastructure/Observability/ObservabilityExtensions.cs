@@ -18,7 +18,7 @@ public static class ObservabilityExtensions
     /// 注册平台标准 OpenTelemetry 管线（Logs/Traces/Metrics → OTLP）。
     /// 调用顺序：先 AddPlatformObservability，再 builder.Host.UsePlatformSerilog。
     /// 配置全部来自各服务 YAML，不读 OTEL_* / ASPNETCORE_* 环境变量。
-    /// 采集端地址读 <c>ConnectionStrings:Otlp</c>（<see cref="OtlpConnectionResolver"/>），没配就不导出。
+    /// 采集端地址读 <c>Connection:Otlp</c>（<see cref="OtlpConnectionResolver"/>），没配就不导出。
     /// </summary>
     public static IHostApplicationBuilder AddPlatformObservability(
         this IHostApplicationBuilder builder,

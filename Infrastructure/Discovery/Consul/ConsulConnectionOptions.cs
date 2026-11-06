@@ -1,18 +1,18 @@
 namespace Platform.Common.Discovery;
 
 /// <summary>
-/// Consul 连接配置（yaml 节 <c>ConnectionStrings:Consul</c>）。
+/// Consul 连接配置（yaml 节 <c>Connection:Consul</c>）。
 /// 形态与读取规则跟 PostgreSQL / Redis / RabbitMQ 一致，见
 /// <c>Platform.Common/Infrastructure/Hosting/Connections/README.md</c>。
 /// </summary>
 /// <remarks>
 /// 以前挂在 <c>Discovery:Consul:Address</c>。Consul 跟数据库、broker 一样是"连到哪台基础设施"，
-/// 部署机上要跟着环境改的就这一类；放进 <c>ConnectionStrings</c> 后运维只需改一个节，
+/// 部署机上要跟着环境改的就这一类；放进 <c>Connection</c> 后运维只需改一个节，
 /// 而 <c>Discovery:*</c> 只剩随代码走的 manifest（路由、产品、定时任务）。
 /// </remarks>
 public sealed class ConsulConnectionOptions
 {
-    public const string SectionName = "ConnectionStrings:Consul";
+    public const string SectionName = "Connection:Consul";
 
     /// <summary>
     /// 可选的整串底座：<c>http://consul:8500</c>。下面任何显式字段都会覆盖它。

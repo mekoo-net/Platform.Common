@@ -1,7 +1,19 @@
-# 连接配置规范（ConnectionStrings）
+# 连接配置规范（Connection）
 
 全平台服务读 PostgreSQL / Redis 连接的唯一约定。改这里等于改五个仓库，先看
 [submodule 传播](#传播)。
+
+## 节名
+
+顶层节叫 `Connection`，2026-11-06 以前叫 `ConnectionStrings`。节里早就不只是连接串了（拆字段、`Parameters`、
+RabbitMQ / Consul / OTLP 端点），沿用 ASP.NET 的名字会让人以为能拿 `GetConnectionString()` 读，拆字段写法下那只会拿到 `null`。
+
+旧节 `ConnectionStrings:*` **不再读取，也不报错**（与 `Observability:OtlpEndpoint` 的处理一致）。代码升级了、部署机没搬的话：
+PG / Redis / Consul / RabbitMQ 报"缺少 Connection:…"拒绝启动，**OTLP 则静默不导出**。三处要一起搬：
+
+- 部署机 yaml（`/opt/meeko/<服务>.yaml`）的顶层键；
+- 环境变量 `ConnectionStrings__Database__Password` → `Connection__Database__Password`；
+- OpenBao 里按配置前缀存的密钥路径 `…/ConnectionStrings/Database` → `…/Connection/Database`。
 
 ## 为什么拆字段
 
@@ -9,7 +21,7 @@
 
 1. **密码没法单独覆盖。** 配置系统按叶子节点覆盖，整串是一个叶子，
    环境变量想改密码就得把 host/port/dbname 一起重写。拆开之后
-   `…ConnectionStrings__Database__Password` 只动密码。
+   `…Connection__Database__Password` 只动密码。
 2. **参数无处可放。** 连接池、超时、SSL 这些迟早要调，塞进串里既没有类型也没有文档，
    拼错一个关键字要到运行时才知道。
 
@@ -19,7 +31,7 @@
 
 ```yaml
 # ① 规范写法：拆字段
-ConnectionStrings:
+Connection:
   Database:
     Host: postgres
     Port: 5432
@@ -33,13 +45,13 @@ ConnectionStrings:
     Database: 0
 
 # ② 整串底座 + 字段覆盖：托管数据库给了一整条串，但连接池要自己调
-ConnectionStrings:
+Connection:
   Database:
     Url: "Host=pg.example.com;Port=5432;Database=meeko;Username=u;Password=p"
     MaxPoolSize: 30       # 覆盖串里的同名项
 
 # ③ 纯整串：历史配置，仍然读得动，新服务不要用
-ConnectionStrings:
+Connection:
   Database: "Host=postgres;Port=5432;Database=meeko;Username=meeko;Password=meeko"
   Redis: "redis://redis:6379"
 ```
@@ -98,7 +110,7 @@ Redis 侧剩下那 18 个 `ConfigurationOptions` 属性（`SocketManager`、`Com
 字段覆盖不了的冷门关键字走 `Parameters`，键名用驱动的官方写法，最后应用：
 
 ```yaml
-ConnectionStrings:
+Connection:
   Database:
     Host: postgres
     Parameters:
@@ -128,7 +140,7 @@ Redis 侧 `ConfigurationOptions.Parse` 会**静默忽略**不认识的键——�
 | Consul agent 地址（`AddServiceDiscovery` 已调用，服务里一般不用碰） | `ConsulConnectionResolver.GetRequired(configuration)` |
 | OTLP 采集端地址（`AddPlatformObservability` 已调用，服务里一般不用碰） | `OtlpConnectionResolver.Resolve(configuration)` |
 
-**服务里不要自己 `GetSection("ConnectionStrings:Database").Get<T>()`。** 那样绕过合并顺序和校验，
+**服务里不要自己 `GetSection("Connection:Database").Get<T>()`。** 那样绕过合并顺序和校验，
 就会长出第四种写法。总策略与反面例子见 [Platform.Common/README.md](../../../README.md#策略必须用公共组件禁止自造)。
 
 `ApplicationName`（PG）和 `ClientName`（Redis）留空时自动取 `Observability:ServiceName`，
@@ -146,7 +158,7 @@ MassTransit + RabbitMQ.Client（≈5.6 MB）。**这是有意的**：本库就�
 与 Meeko.Platform 根一致），另外四个仓跟指针即可，不需要改各自的中央版本。
 
 ```yaml
-ConnectionStrings:
+Connection:
   RabbitMq:
     Host: rabbitmq
     Port: 5672
@@ -170,7 +182,7 @@ ConnectionStrings:
 模型与解析在 `Infrastructure/Discovery/Consul/`，读取同样走 `ConnectionSectionReader.TryRead`。
 
 ```yaml
-ConnectionStrings:
+Connection:
   Consul:
     Host: consul
     Port: 8500          # 缺省 8500；Ssl: true 时缺省 8501
@@ -181,7 +193,7 @@ ConnectionStrings:
 语义取端口（`http://consul` 就是 80），不套 8500——反代在 443 后面的 agent 不会被悄悄改端口。
 
 以前写在 `Discovery:Consul:Address`，现在不读了，留在 yaml 里不影响启动。只留旧节、没写
-`ConnectionStrings:Consul` 的话会报"缺少 ConnectionStrings:Consul"——那就是搬了家没改。
+`Connection:Consul` 的话会报"缺少 Connection:Consul"——那就是搬了家没改。
 
 ### 本服务注册成什么
 
@@ -205,7 +217,7 @@ ConnectionStrings:
 `AddPlatformObservability` 里已经读了，服务里一般不用碰。
 
 ```yaml
-ConnectionStrings:
+Connection:
   # Host 留空 = 不导出遥测（日志退回 stdout）。
   Otlp:
     Host: null
@@ -216,7 +228,7 @@ ConnectionStrings:
 带路径的地址（`…:4318/v1/traces`）是 OTLP/HTTP 的写法，gRPC 导出器连上去只会默默失败，所以直接报错。
 
 以前写在 `Observability:OtlpEndpoint`，现在不读了，留在 yaml 里不影响启动。只留旧键、没写
-`ConnectionStrings:Otlp` 的话遥测就不导出——遥测断了先看这里。
+`Connection:Otlp` 的话遥测就不导出——遥测断了先看这里。
 
 ## Redis 超时
 

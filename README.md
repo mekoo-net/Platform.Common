@@ -12,7 +12,7 @@
    遥测与日志、JSON、结果与错误、响应信封、分页、健康检查——先查下面的[组件清单](#组件清单)，
    产品仓再查 [Product.Common](../Product.Common/README.md#组件清单)。清单里有的，必须用。
 2. **不在服务里另建同类东西。** 典型的违规：
-   - 自己 `GetSection("ConnectionStrings:…").Get<T>()`，自建 `XxxConnectionConfig`；
+   - 自己 `GetSection("Connection:…").Get<T>()`，自建 `XxxConnectionConfig`；
    - 自己拼 Npgsql / Redis 连接串、解析 `redis://`、设连接超时与重试；
    - 自定义 `Observability` / `Logging` / `Cors` 之类的配置类——**没人引用也不行**，
      死代码会被下一个人照抄；
@@ -24,7 +24,7 @@
 4. **服务里只留真正私有的东西。** 判断标准：换一个服务是否也需要它？需要，就属于公共库。
    例：Tavern 在 EF 连接串上加 `Search Path` 给 Orleans 用，只有 Tavern 有 Orleans，留在
    Tavern（`OrleansDatabase`）；而"读 PG 配置、拼连接串"每个服务都要，只能用公共库。
-5. **yaml 跟着公共模型走。** 只写公共模型认的字段与形态（如 `ConnectionStrings:*` 的拆字段写法，
+5. **yaml 跟着公共模型走。** 只写公共模型认的字段与形态（如 `Connection:*` 的拆字段写法，
    见 [Connections/README.md](Infrastructure/Hosting/Connections/README.md)），
    不为单个服务另起键名。
 
@@ -54,7 +54,7 @@ Url + 连接池合并，抄了一份 Redis URL 归一化，外加三个无人引
 | gRPC 通道 | `GrpcClientDefaults.CreateChannel()` |
 | Kestrel | `ConfigurePlatformKestrel()` |
 | 缓存 | `AddPlatformCache()` + yaml `FusionCache:Profiles` + `ApplyProfile()` |
-| 遥测 / 日志 | `AddPlatformObservability()` / `UsePlatformSerilog()` / `PlatformActivitySource`；采集端地址 `ConnectionStrings:Otlp`（`OtlpConnectionResolver`） |
+| 遥测 / 日志 | `AddPlatformObservability()` / `UsePlatformSerilog()` / `PlatformActivitySource`；采集端地址 `Connection:Otlp`（`OtlpConnectionResolver`） |
 | 健康检查 | `MapHealthChecks()`（`/health/live`） |
 | 关联 ID | `UseCorrelationId()` / `CorrelationContext` |
 | JSON | REST 用 `AddPlatformJsonOptions()`；手写序列化用 `PlatformJson.Web` / `PlatformJson.Exact` |

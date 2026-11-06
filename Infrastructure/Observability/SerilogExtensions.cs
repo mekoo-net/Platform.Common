@@ -13,7 +13,7 @@ public static class SerilogExtensions
     /// <summary>
     /// 把 Serilog 接入 ASP.NET Core，主 sink 为 OTLP；可选 Console。
     /// 必须在 AddPlatformObservability 之后调用。
-    /// <c>Logging:Console</c> 仅控制是否写 stdout，与 <c>ConnectionStrings:Otlp</c> 无关；默认 false。
+    /// <c>Logging:Console</c> 仅控制是否写 stdout，与 <c>Connection:Otlp</c> 无关；默认 false。
     /// </summary>
     public static WebApplicationBuilder UsePlatformSerilog(this WebApplicationBuilder builder)
     {

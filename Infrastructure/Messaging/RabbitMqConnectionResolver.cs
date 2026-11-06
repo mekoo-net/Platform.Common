@@ -34,7 +34,7 @@ public sealed record RabbitMqSettings(
 }
 
 /// <summary>
-/// 读 <c>ConnectionStrings:RabbitMq</c>。判定规则复用
+/// 读 <c>Connection:RabbitMq</c>。判定规则复用
 /// <see cref="ConnectionSectionReader"/>（标量整串 / 结构化映射 / 未配置），与 PG、Redis 同一套。
 /// </summary>
 public static class RabbitMqConnectionResolver

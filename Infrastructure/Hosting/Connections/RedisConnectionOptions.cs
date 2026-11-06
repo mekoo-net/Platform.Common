@@ -3,7 +3,7 @@ using StackExchange.Redis;
 namespace Platform.Common.Hosting;
 
 /// <summary>
-/// Redis 连接配置（yaml 节 <c>ConnectionStrings:Redis</c>）。字段拆分理由同
+/// Redis 连接配置（yaml 节 <c>Connection:Redis</c>）。字段拆分理由同
 /// <see cref="PostgresConnectionOptions"/>。
 /// </summary>
 /// <remarks>
@@ -12,7 +12,7 @@ namespace Platform.Common.Hosting;
 /// </remarks>
 public sealed class RedisConnectionOptions
 {
-    public const string SectionName = "ConnectionStrings:Redis";
+    public const string SectionName = "Connection:Redis";
 
     // ---- 端点与身份 ----
 

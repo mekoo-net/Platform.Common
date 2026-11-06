@@ -26,7 +26,7 @@ public static class DiscoveryServiceExtensions
     }
 
     /// <summary>
-    /// 按 <c>ConnectionStrings:Consul</c> 注册 <see cref="IConsulClient"/> 单例。
+    /// 按 <c>Connection:Consul</c> 注册 <see cref="IConsulClient"/> 单例。
     /// 连接配置在这里就读，缺了启动即失败，而不是拖到第一次 RPC 才在解析器里报"找不到实例"。
     /// </summary>
     public static WebApplicationBuilder AddServiceDiscovery(this WebApplicationBuilder builder)

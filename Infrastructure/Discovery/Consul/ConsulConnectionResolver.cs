@@ -11,7 +11,7 @@ public sealed record ConsulSettings(Uri Address)
 }
 
 /// <summary>
-/// 读 <c>ConnectionStrings:Consul</c>。判定规则复用 <see cref="ConnectionSectionReader"/>
+/// 读 <c>Connection:Consul</c>。判定规则复用 <see cref="ConnectionSectionReader"/>
 /// （标量整串 / 结构化映射 / 未配置），与 PG、Redis、RabbitMQ 同一套。
 /// </summary>
 public static class ConsulConnectionResolver

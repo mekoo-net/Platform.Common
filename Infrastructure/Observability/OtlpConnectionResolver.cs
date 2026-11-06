@@ -4,7 +4,7 @@ using Platform.Common.Hosting;
 namespace Platform.Common.Observability;
 
 /// <summary>
-/// 读 <c>ConnectionStrings:Otlp</c>。判定规则复用 <see cref="ConnectionSectionReader"/>
+/// 读 <c>Connection:Otlp</c>。判定规则复用 <see cref="ConnectionSectionReader"/>
 /// （标量整串 / 结构化映射 / 未配置），与 PG、Redis、Consul 同一套。
 /// </summary>
 public static class OtlpConnectionResolver

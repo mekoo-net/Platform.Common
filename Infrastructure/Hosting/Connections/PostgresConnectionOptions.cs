@@ -3,11 +3,11 @@ using Npgsql;
 namespace Platform.Common.Hosting;
 
 /// <summary>
-/// PostgreSQL 连接配置（yaml 节 <c>ConnectionStrings:Database</c>）。
+/// PostgreSQL 连接配置（yaml 节 <c>Connection:Database</c>）。
 /// </summary>
 /// <remarks>
 /// 拆成字段而不是一整条连接串，是为了让密码单独成为一个可覆盖的叶子节点：
-/// 环境变量 <c>…ConnectionStrings__Database__Password</c> 只覆盖密码，其余留在 yaml 里；
+/// 环境变量 <c>…Connection__Database__Password</c> 只覆盖密码，其余留在 yaml 里；
 /// 整串形态做不到这一点，改端口就得把密码一起重写一遍。
 ///
 /// 所有可选项都是可空类型：<c>null</c> = 不写入连接串，交给 Npgsql 自己的默认值。
@@ -15,7 +15,7 @@ namespace Platform.Common.Hosting;
 /// </remarks>
 public sealed class PostgresConnectionOptions
 {
-    public const string SectionName = "ConnectionStrings:Database";
+    public const string SectionName = "Connection:Database";
 
     // ---- 端点与身份 ----
 
