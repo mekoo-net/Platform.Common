@@ -4,6 +4,10 @@
     <CentralPackageTransitivePinningEnabled>true</CentralPackageTransitivePinningEnabled>
   </PropertyGroup>
 
+  <ItemGroup Label="Secrets (OpenBao)">
+    <PackageVersion Include="VaultSharp" Version="1.17.5.1" />
+  </ItemGroup>
+
   <ItemGroup Label="Service Discovery (Consul)">
     <PackageVersion Include="Consul" Version="1.8.0" />
     <!--

@@ -57,6 +57,7 @@
     <PackageReference Include="ZiggyCreatures.FusionCache.Backplane.StackExchangeRedis" />
 
     <PackageReference Include="NetEscapades.Configuration.Yaml" />
+    <PackageReference Include="VaultSharp" />
 
     <PackageReference Include="Consul" />
     <PackageReference Include="Grpc.Net.Client" />
