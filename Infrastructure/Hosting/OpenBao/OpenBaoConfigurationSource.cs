@@ -20,7 +20,7 @@ public sealed class OpenBaoConfigurationSource(OpenBaoSettings settings, IReadOn
 
     public OpenBaoSettings Settings { get; } = settings;
 
-    /// <summary>要读的 KV v2 路径，写成 <c>挂载/路径</c>：<c>Meeko/Keystone</c>。按顺序叠加，后面的覆盖前面的同名键。</summary>
+    /// <summary>要读的 KV v2 路径，写成 <c>挂载/路径</c>：<c>Platform/Keystone</c>。按顺序叠加，后面的覆盖前面的同名键。</summary>
     public IReadOnlyList<string> Secrets { get; } = secrets;
 
     /// <summary>测试用：替换 VaultSharp 内部的 HttpClient（参数是 VaultSharp 准备好的 handler）。</summary>
@@ -53,7 +53,7 @@ internal sealed class OpenBaoConfigurationProvider : ConfigurationProvider, IDis
         _source = source;
         _secrets = source.Secrets.Select(ParseSecretPath).ToArray();
         if (_secrets.Length == 0)
-            throw new InvalidOperationException("AddOpenBao(...) needs the KV paths this service reads, e.g. \"Meeko/Keystone\"");
+            throw new InvalidOperationException("AddOpenBao(...) needs the KV paths this service reads, e.g. \"Platform/Keystone\"");
     }
 
     /// <summary>
@@ -100,7 +100,7 @@ internal sealed class OpenBaoConfigurationProvider : ConfigurationProvider, IDis
     /// <summary>
     /// 登录失败、OpenBao 不可达这类整轮失败抛出（启动时重试、刷新时保留旧值）。单个条目的问题——
     /// 路径下什么都没有、策略不放行——只让<b>这个条目</b>退回配置文件，其余条目照常生效：
-    /// <c>Meeko/Shared</c> 还没建好，不该连带 <c>Meeko/Keystone</c> 里的数据库密码也读不到。
+    /// <c>Platform/Shared</c> 还没建好，不该连带 <c>Platform/Keystone</c> 里的数据库密码也读不到。
     /// </summary>
     private async Task<Dictionary<string, string?>> FetchAsync(CancellationToken ct)
     {
@@ -165,9 +165,9 @@ internal sealed class OpenBaoConfigurationProvider : ConfigurationProvider, IDis
     }
 
     /// <summary>
-    /// 条目落到配置的哪一层。服务自己的树（<c>Meeko/Keystone</c>）落在根上：<c>Meeko/Keystone/Connection/Database</c>
-    /// → <c>Connection:Database</c>。共享树（<c>Meeko/Shared/…</c>）保留 <c>Shared</c> 及其后的路径：
-    /// <c>Meeko/Shared/Jwt/PublicKeys</c> → <c>Shared:Jwt:PublicKeys</c>——共享的东西在配置里也挂在 <c>Shared:</c> 下，
+    /// 条目落到配置的哪一层。服务自己的树（<c>Platform/Keystone</c>）落在根上：<c>Platform/Keystone/Connection/Database</c>
+    /// → <c>Connection:Database</c>。共享树（<c>Platform/Shared/…</c>）保留 <c>Shared</c> 及其后的路径：
+    /// <c>Platform/Shared/Jwt/PublicKeys</c> → <c>Shared:Jwt:PublicKeys</c>——共享的东西在配置里也挂在 <c>Shared:</c> 下，
     /// 不和服务自己的同名节（Keystone 的 <c>Jwt</c> 放着私钥）混在一起，配置路径和 OpenBao 路径一一对应。
     /// </summary>
     private static string ConfigPrefix(string path)
@@ -326,7 +326,7 @@ internal sealed class OpenBaoConfigurationProvider : ConfigurationProvider, IDis
         var slash = trimmed.IndexOf('/');
         if (slash <= 0 || slash == trimmed.Length - 1)
             throw new InvalidOperationException(
-                $"OpenBao secret path '{entry}' must be '<mount>/<path>', e.g. Meeko/Keystone");
+                $"OpenBao secret path '{entry}' must be '<mount>/<path>', e.g. Platform/Keystone");
         return (trimmed[..slash], trimmed[(slash + 1)..]);
     }
 
