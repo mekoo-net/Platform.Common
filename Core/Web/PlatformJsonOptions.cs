@@ -17,7 +17,7 @@ namespace Platform.Common.Web;
 ///   <item><description>日期时间：Unix 毫秒（number），见 <see cref="EpochMillisDateTimeConverter"/></description></item>
 /// </list>
 ///
-/// 使用方：Demux / Bff / Keystone 三个 host 的 <c>Program.cs</c> 都调用
+/// 使用方：Yomi / Bff / Keystone 三个 host 的 <c>Program.cs</c> 都调用
 /// <see cref="AddPlatformJsonOptions"/> 一次即可，保证前端 console 接到的 wire 格式一致。
 /// </summary>
 public static class PlatformJsonOptions

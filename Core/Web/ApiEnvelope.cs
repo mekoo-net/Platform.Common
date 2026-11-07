@@ -5,7 +5,7 @@ namespace Platform.Common.Web;
 
 /// <summary>
 /// 前端 docs 单层信封 <c>{ success, data, message? }</c>。
-/// 凡是面向前端 console 的 REST 端点（Demux `/demux/api/*`、Keystone `/api/user/*` 等）
+/// 凡是面向前端 console 的 REST 端点（Yomi `/yomi/api/*`、Keystone `/api/user/*` 等）
 /// 都用这种 shape，避免前端 <c>apiCall</c> 还要兼容 RFC 7807 ProblemDetails 分支。
 /// HTTP 状态码默认 200（除非真正传输层异常），失败语义由 <c>success=false + message</c> 表达。
 /// <para>

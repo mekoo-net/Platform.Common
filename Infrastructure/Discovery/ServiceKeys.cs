@@ -25,7 +25,7 @@ public static class ServiceKeys
     public const string PlatformGateway = "platform-gateway";
 
     // ── 产品线
-    /// <summary>Meeko.Demux 仓库。改名前是 <c>demux</c>。</summary>
+    /// <summary>Yomi 产品。仓库目录仍是 Meeko.Demux；Consul key 改名前是 <c>demux</c>。</summary>
     public const string Yomi = "yomi";
     public const string YomiGateway = "yomi-gateway";
     public const string Tavern = "tavern";
